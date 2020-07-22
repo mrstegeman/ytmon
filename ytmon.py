@@ -552,7 +552,7 @@ def _trigger_jellyfin_scan(config):
 
     try:
         url = '{}/Items/{}/Refresh'.format(base_url, item_id)
-        response = requests.post(
+        requests.post(
             url,
             params={
                 'api_key': config['jellyfin']['api_key'],
@@ -563,7 +563,6 @@ def _trigger_jellyfin_scan(config):
                 'ReplaceAllMetadata': 'false',
             }
         )
-        print(response.status_code)
     except requests.exceptions.RequestException as e:
         print('Failed to trigger Jellyfin scan:', e)
 
