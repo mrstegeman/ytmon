@@ -1,0 +1,29 @@
+{
+  "output_directory": "/path/to/media",
+  "interval": 300,
+  "channels": [
+    {
+      "url": "https://www.youtube.com/user/TheLinuxFoundation",
+      "keep_days": 7
+    }
+  ],
+  "youtube_dl_opts": {
+    "merge_output_format": "mp4",
+    "postprocessor_args": [
+      "-strict",
+      "-2"
+    ]
+  },
+  "permissions": {
+    "uid": 1000,
+    "gid": 1000
+  },
+  "jellyfin": {
+    "api_key": "0123456789abcdef0123456789abcdef",
+    "host": "jellyfin.local",
+    "port": 8096,
+    "path": "/",
+    "tls": false,
+    "library_name": "YouTube Videos"
+  }
+}

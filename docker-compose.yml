@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  ytmon:
+    build: .
+    restart: unless-stopped
+    container_name: ytmon
+    volumes:
+      # This media volume should really point to whatever you have in your
+      # config.json
+      - /opt/docker/ytmon/media:/media
+      - /opt/docker/ytmon/config:/config
