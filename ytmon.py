@@ -276,6 +276,8 @@ def _write_nfo(config, feed, entry):
     title.text = entry.title
     plot = etree.SubElement(movie, 'plot')
     plot.text = entry.summary
+    premiered = etree.SubElement(movie, 'premiered')
+    premiered.text = entry.published.split('T')[0],
 
     try:
         path = '{}.nfo'.format(_entry_to_path(config, feed, entry))
