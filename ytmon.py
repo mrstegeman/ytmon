@@ -467,7 +467,7 @@ def _clean_channel(config, channel, channel_title):
                                         channel_title)):
         # we only keep files that match the expected format and are within the
         # configured date range
-        regex = r'\d{4}-\d{2}-\d{2} - .* \[[\w_-]+\]\.(mp4|nfo)'
+        regex = r'\d{4}-\d{2}-\d{2} - .* \[[\w_-]+\]\.(mp4|nfo|jpg|jpeg|png)'
         if re.fullmatch(regex, name):
             date = datetime.date.fromisoformat(name[0:10])
             if now - date < delta:
