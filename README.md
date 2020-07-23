@@ -36,7 +36,7 @@ A sample `docker-compose.yml` is also available in this repo.
 ### Manual
 
 ```
-# You'll need to install ffmpeg if you don't already have it.
+# You'll need to install ffmpeg and imagemagick if you don't already have them.
 pip3 install -r requirements.txt
 ./ytmon.py --config /path/to/config.json
 ```

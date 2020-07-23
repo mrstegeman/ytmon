@@ -21,6 +21,7 @@ import pathvalidate
 import re
 import requests
 import shutil
+import subprocess
 import sys
 import time
 import youtube_dl
@@ -150,6 +151,20 @@ class YTDLPostProcessor(youtube_dl.postprocessor.common.PostProcessor):
         :return: Tuple: list of files to delete, updated information
         """
         _write_nfo(self._config, information)
+
+        # if the downloaded thumbnail was a webp file, convert it to png to
+        # make scrapers happy.
+        webp = '{}.webp'.format(os.path.splitext(information['filepath'])[0])
+        if os.path.isfile(webp):
+            png = '{}.png'.format(os.path.splitext(information['filepath'])[0])
+
+            try:
+                proc = subprocess.run(['convert', webp, png])
+                if proc.returncode == 0:
+                    return [webp], information
+            except (OSError, subprocess.SubprocessError) as e:
+                print('Failed to convert {} to png: {}'.format(webp, e))
+
         return [], information
 
 
