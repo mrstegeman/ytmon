@@ -58,13 +58,6 @@ def _write_nfo(information):
     movie = etree.Element('movie')
     title = etree.SubElement(movie, 'title')
     title.text = information['fulltitle']
-    sorttitle = etree.SubElement(movie, 'sorttitle')
-    sorttitle.text = '{}-{}-{} - {}'.format(
-        information['upload_date'][0:4],
-        information['upload_date'][4:6],
-        information['upload_date'][6:8],
-        information['fulltitle']
-    )
     plot = etree.SubElement(movie, 'plot')
     plot.text = information['description']
     premiered = etree.SubElement(movie, 'premiered')
