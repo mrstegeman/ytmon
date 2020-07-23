@@ -256,7 +256,12 @@ def _channel_to_feed(channel_url):
     if _DEBUG:
         print('Getting feed URL for channel:', channel_url)
 
-    response = requests.get('{}/about'.format(channel_url))
+    try:
+        response = requests.get('{}/about'.format(channel_url))
+    except requests.exceptions.RequestException as e:
+        print('Failed to fetch channel info for {}: {}'.format(channel_url, e))
+        return None
+
     soup = BeautifulSoup(response.content, 'html.parser')
     links = soup.find('head').find_all('link')
 
