@@ -129,6 +129,30 @@ _CONFIG_SCHEMA = {
 }
 
 
+class YTDLPostProcessor(youtube_dl.postprocessor.common.PostProcessor):
+    """Postprocessor to write .nfo files."""
+
+    def __init__(self, config):
+        """
+        Initialize the postprocessor.
+
+        :param dict config: Config dict.
+        """
+        youtube_dl.postprocessor.common.PostProcessor.__init__(self)
+        self._config = config
+
+    def run(self, information):
+        """
+        Run the postprocessor, i.e. write the .nfo file.
+
+        :param dict information: Extracted video information.
+
+        :return: Tuple: list of files to delete, updated information
+        """
+        _write_nfo(self._config, information)
+        return [], information
+
+
 def _read_config(path):
     """
     Read the user's config file.
@@ -260,27 +284,30 @@ def _entry_to_path(config, feed, entry):
     )
 
 
-def _write_nfo(config, feed, entry):
+def _write_nfo(config, information):
     """
     Write a Kodi/Emby/Jellyfin-compatible .nfo file for a video.
 
     :param dict config: Config dict.
-    :param feed: Parsed Atom feed structure.
-    :param entry: Parsed Atom feed entry structure.
+    :param dict information: Extracted video information.
     """
     if _DEBUG:
-        print('Writing NFO for:', entry.title)
+        print('Writing NFO for:', information['fulltitle'])
 
     movie = etree.Element('movie')
     title = etree.SubElement(movie, 'title')
-    title.text = entry.title
+    title.text = information['fulltitle']
     plot = etree.SubElement(movie, 'plot')
-    plot.text = entry.summary
+    plot.text = information['description']
     premiered = etree.SubElement(movie, 'premiered')
-    premiered.text = entry.published.split('T')[0],
+    premiered.text = '{}-{}-{}'.format(
+        information['upload_date'][0:4],
+        information['upload_date'][4:6],
+        information['upload_date'][6:8]
+    )
 
     try:
-        path = '{}.nfo'.format(_entry_to_path(config, feed, entry))
+        path = re.sub(r'\.mp4$', '.nfo', information['filepath'])
         with open(path, 'wb') as f:
             f.write(
                 etree.tostring(
@@ -346,7 +373,8 @@ def _download_entry(config, channel, feed, entry):
     # use youtube_dl to download and convert the video
     url = entry.links[0].href
     opts = copy.deepcopy(config['youtube_dl_opts'])
-    opts['outtmpl'] = path
+    opts['outtmpl'] = re.sub(r'\.mp4$', '.%(ext)s', path)
+    opts['writethumbnail'] = True
     opts['quiet'] = not _DEBUG
 
     if _DEBUG:
@@ -354,6 +382,7 @@ def _download_entry(config, channel, feed, entry):
 
     try:
         with youtube_dl.YoutubeDL(opts) as ydl:
+            ydl.add_post_processor(YTDLPostProcessor(config))
             ydl.download([url])
     except youtube_dl.utils.YoutubeDLError as e:
         print('Failed to download {}: {}'.format(url, e))
@@ -368,9 +397,6 @@ def _download_entry(config, channel, feed, entry):
             )
         except OSError as e:
             print('Failed to chown {}: {}'.format(path, e))
-
-    _write_nfo(config, feed, entry)
-    return
 
 
 def _download_channel(config, channel):
@@ -397,7 +423,10 @@ def _download_channel(config, channel):
 
     # download the feed
     feed = _download_feed(_FEED_URLS[url])
-    if not feed:
+    if not feed or \
+            not hasattr(feed, 'feed') or \
+            not hasattr(feed.feed, 'title') or \
+            not hasattr(feed, 'entries'):
         return None
 
     channel_title = pathvalidate.sanitize_filename(feed.feed.title)
@@ -424,7 +453,7 @@ def _clean_channel(config, channel, channel_title):
     if _DEBUG:
         print('Cleaning up channel:', channel_title)
 
-    now = datetime.date.today()
+    now = datetime.datetime.utcnow().date()
     delta = datetime.timedelta(days=channel['keep_days'])
 
     for name in os.listdir(os.path.join(config['output_directory'],
@@ -438,34 +467,6 @@ def _clean_channel(config, channel, channel_title):
                 continue
 
         full = os.path.join(config['output_directory'], channel_title, name)
-
-        if _DEBUG:
-            print('Removing:', full)
-
-        try:
-            if os.path.isdir(full):
-                shutil.rmtree(full)
-            else:
-                os.unlink(full)
-        except OSError as e:
-            print('Failed to remove {}: {}'.format(full, e))
-
-
-def _clean_output_directory(config, current_channel_titles):
-    """
-    Clean up the output directory.
-
-    :param dict config: Config dict.
-    :param str[] current_channel_titles: List of path-sanitized channel titles.
-    """
-    if _DEBUG:
-        print('Cleaning up output directory')
-
-    for name in os.listdir(config['output_directory']):
-        if name in current_channel_titles:
-            continue
-
-        full = os.path.join(config['output_directory'], name)
 
         if _DEBUG:
             print('Removing:', full)
@@ -500,9 +501,6 @@ def _download_channels(config):
 
         # then, clean up old videos
         _clean_channel(config, channel, channel_title)
-
-    # now, clean up any files and directories that don't belong
-    _clean_output_directory(config, channel_titles)
 
 
 def _trigger_jellyfin_scan(config):
