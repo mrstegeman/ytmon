@@ -161,6 +161,16 @@ class YTDLPostProcessor(youtube_dl.postprocessor.common.PostProcessor):
             try:
                 proc = subprocess.run(['convert', webp, png])
                 if proc.returncode == 0:
+                    if 'permissions' in self._config:
+                        try:
+                            os.chown(
+                                png,
+                                self._config['permissions']['uid'],
+                                self._config['permissions']['gid']
+                            )
+                        except OSError as e:
+                            print('Failed to chown {}: {}'.format(png, e))
+
                     return [webp], information
             except (OSError, subprocess.SubprocessError) as e:
                 print('Failed to convert {} to png: {}'.format(webp, e))
